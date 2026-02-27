@@ -1,0 +1,44 @@
+#
+# 名称：手动同步上游仓库源码
+# 功能：按需手动物理同步源仓库到本人仓库，移除定时自动执行
+#
+
+name: Sync Source Repository
+
+on:
+  workflow_dispatch:      # 物理保留：支持在 Actions 页面手动点击运行
+  repository_dispatch:    # 物理保留：支持通过 API 远程触发
+    types: [sync-source]
+
+jobs:
+  update_source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: 2410 # 对应您要同步的分支
+
+      - name: 配置 Git 信息
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+
+      - name: 物理拉取上游源码
+        run: |
+          # 物理锁定上游源地址
+          git remote add upstream https://github.com/padavanonly/immortalwrt-mt798x-24.10.git
+          # 物理抓取指定分支
+          git fetch upstream 2410
+          # 强制切回本地对应分支
+          git checkout 2410
+          # 强制合并上游修改（以远程为准，允许无关历史合并）
+          git merge upstream/2410 --allow-unrelated-histories
+
+      - name: 推送到本人仓库
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: 2410
+          force: true # 物理强制推送，确保仓库内容完全对齐
