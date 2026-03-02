@@ -27,6 +27,15 @@ include $(INCLUDE_DIR)/u-boot.mk
 include $(INCLUDE_DIR)/package.mk
 include $(INCLUDE_DIR)/host-build.mk
 
+# --- 物理修复注入开始：补齐缺失的 Package 基础定义 ---
+define Package/uboot-mediatek
+  SECTION:=boot
+  CATEGORY:=Boot Loaders
+  TITLE:=U-Boot for MediaTek devices
+  DEPENDS:=@TARGET_mediatek
+endef
+# --- 物理修复注入结束 ---
+
 # 物理物理锁死：仅编译 SL3000 eMMC 目标，逻辑上删除了其他数百个设备
 UBOOT_TARGETS := mt7981_sl3000_emmc
 
