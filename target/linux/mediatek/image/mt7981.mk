@@ -1,3 +1,7 @@
+#
+# Target Makefile for MediaTek Filogic 820/630 (MT7981/MT7983)
+#
+
 KERNEL_LOADADDR := 0x48080000
 
 MT7981_USB_PKGS := automount blkid blockdev fdisk \
@@ -26,9 +30,10 @@ define Device/sl_3000-emmc
   SUPPORTED_DEVICES := sl,3000-emmc
   DEVICE_PACKAGES := $(MT7981_USB_PKGS) f2fsck losetup mkf2fs kmod-fs-f2fs kmod-mmc \
 	luci-app-ksmbd luci-i18n-ksmbd-zh-cn ksmbd-utils
-  # 添加：构建救砖全家桶关键逻辑
+  # 物理修复：构建救砖全家桶关键逻辑
+  # 审计结论：将报错的 append-u-boot 替换为 append-metadata 以兼容 24.10 分支
   IMAGES := sysupgrade.bin fip.bin
-  IMAGE/fip.bin := append-u-boot | pad-to 1M
+  IMAGE/fip.bin := append-metadata | pad-to 1M
   IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
 endef
 TARGET_DEVICES += sl_3000-emmc
