@@ -6,6 +6,18 @@
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/image.mk
 
+# --- 物理修复注入：定义缺失的 GPT 分区表构建宏 ---
+define Build/mt798x-gpt
+	$(STAGING_DIR_HOST)/bin/ptgen \
+		-g -o $@.tmp \
+		-a 1 -l 1024 \
+		$(if $(findstring emmc,$1), -S 0x$(shell printf "%x" $(CONFIG_TARGET_EXT4_PARTSIZE_DEFAULT))) \
+		-t 0xef -p 64M@0x20000 \
+		-t 0x83 -p $(CONFIG_TARGET_EXT4_PARTSIZE_DEFAULT)M@0x4020000 \
+		$(if $(findstring emmc,$1), -t 0x83 -p 100M@0x$(shell printf "%x" $(shell expr 64 + $(CONFIG_TARGET_EXT4_PARTSIZE_DEFAULT) + 4))) \
+	&& mv $@.tmp $@
+endef
+
 define Build/sysupgrade-emmc
 	rm -f $@.recovery
 	mkfs.fat -C $@.recovery 3070
@@ -38,4 +50,3 @@ define Image/Build
 endef
 
 $(eval $(call BuildImage))
-
