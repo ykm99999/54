@@ -11,7 +11,6 @@ PKG_SOURCE_VERSION:=sl3000-uboot-base
 PKG_MIRROR_HASH:=skip
 
 PKG_MAINTAINER:=Gemini_AI
-PKG_BUILD_FLAGS:=high_mem_enabled
 
 include $(INCLUDE_DIR)/package.mk
 include $(INCLUDE_DIR)/u-boot.mk
@@ -34,11 +33,11 @@ UBOOT_TARGETS:=mt7981_sl_3000-emmc
 
 define Package/uboot-mediatek/install
 	mkdir -p $(STAGING_DIR_IMAGE)
-	# 物理路径对齐：进入目标子目录提取产物并重命名
+	# 延续上一版物理修复：将 1024M 源码产出的 bl2/fip 强制对齐母版镜像宏路径
 	$(CP) $(PKG_BUILD_DIR)/$(1)/bl2.bin $(STAGING_DIR_IMAGE)/mt7981-emmc-ddr3-bl2.bin
 	$(CP) $(PKG_BUILD_DIR)/$(1)/u-boot.fip $(STAGING_DIR_IMAGE)/mt7981-emmc-ddr3-u-boot.fip
 	
-	# 备份至包目录
+	# 物理备份至常规安装目录
 	mkdir -p $(1)
 	$(CP) $(PKG_BUILD_DIR)/$(1)/u-boot.bin $(1)/u-boot.bin 2>/dev/null || true
 	$(CP) $(PKG_BUILD_DIR)/$(1)/u-boot.fip $(1)/u-boot.fip 2>/dev/null || true
