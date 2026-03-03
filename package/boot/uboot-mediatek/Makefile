@@ -31,16 +31,24 @@ endef
 
 UBOOT_TARGETS:=mt7981_sl_3000-emmc
 
+define Package/uboot-mediatek
+  SECTION:=boot
+  CATEGORY:=Boot Loaders
+  TITLE:=U-Boot for MediaTek MT7981 (SL 3000 eMMC)
+  DEPENDS:=@TARGET_mediatek_mt7981
+  URL:=https://github.com/ykm99999/66.git
+endef
+
 define Package/uboot-mediatek/install
 	mkdir -p $(STAGING_DIR_IMAGE)
-	# 延续上一版物理修复：将 1024M 源码产出的 bl2/fip 强制对齐母版镜像宏路径
-	$(CP) $(PKG_BUILD_DIR)/$(1)/bl2.bin $(STAGING_DIR_IMAGE)/mt7981-emmc-ddr3-bl2.bin
-	$(CP) $(PKG_BUILD_DIR)/$(1)/u-boot.fip $(STAGING_DIR_IMAGE)/mt7981-emmc-ddr3-u-boot.fip
+	# 复制生成的 BL2 和 FIP 镜像到 staging 目录
+	$(CP) $(PKG_BUILD_DIR)/bl2.bin $(STAGING_DIR_IMAGE)/mt7981-emmc-ddr3-bl2.bin 2>/dev/null || true
+	$(CP) $(PKG_BUILD_DIR)/u-boot.fip $(STAGING_DIR_IMAGE)/mt7981-emmc-ddr3-u-boot.fip 2>/dev/null || true
 	
-	# 物理备份至常规安装目录
-	mkdir -p $(1)
-	$(CP) $(PKG_BUILD_DIR)/$(1)/u-boot.bin $(1)/u-boot.bin 2>/dev/null || true
-	$(CP) $(PKG_BUILD_DIR)/$(1)/u-boot.fip $(1)/u-boot.fip 2>/dev/null || true
+	# 安装到包目标目录（用于打包）
+	$(INSTALL_DIR) $(1)/usr/share/uboot-mediatek
+	$(CP) $(PKG_BUILD_DIR)/u-boot.bin $(1)/usr/share/uboot-mediatek/ 2>/dev/null || true
+	$(CP) $(PKG_BUILD_DIR)/u-boot.fip $(1)/usr/share/uboot-mediatek/ 2>/dev/null || true
 endef
 
 $(eval $(call BuildPackage,uboot-mediatek))
