@@ -6,8 +6,9 @@
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/image.mk
 
-# --- 物理修复注入：定义鲁棒性 GPT 分区表构建宏 ---
-# 审计结论：手动指定 512M Rootfs 空间，彻底避开变量空值导致的 Invalid size 报错
+# --- 物理修复注入：定义 eMMC 救砖全家桶构建宏 ---
+
+# 1. 修复 GPT 分区表生成 (硬编码 512M Rootfs，彻底解决变量空值报错)
 define Build/mt798x-gpt
 	$(STAGING_DIR_HOST)/bin/ptgen \
 		-g -o $@.tmp \
@@ -17,6 +18,18 @@ define Build/mt798x-gpt
 		-t 0x83 -p 100M@0x24020000 \
 	&& mv $@.tmp $@
 endef
+
+# 2. 修复 Preloader (BL2) 提取逻辑 (解决 Missing Build/mt7981-bl2)
+define Build/mt7981-bl2
+	cat $(STAGING_DIR_IMAGE)/mt7981-$1-bl2.bin > $@
+endef
+
+# 3. 修复 U-Boot (FIP) 提取逻辑 (解决 Missing Build/mt7981-bl31-uboot)
+define Build/mt7981-bl31-uboot
+	cat $(STAGING_DIR_IMAGE)/mt7981-$1-u-boot.fip > $@
+endef
+
+# --- 原有逻辑保留 ---
 
 define Build/sysupgrade-emmc
 	rm -f $@.recovery
