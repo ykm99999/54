@@ -6,15 +6,15 @@
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/image.mk
 
-# --- 物理修复注入：定义缺失的 GPT 分区表构建宏 ---
+# --- 物理修复注入：定义鲁棒性 GPT 分区表构建宏 ---
+# 审计结论：手动指定 512M Rootfs 空间，彻底避开变量空值导致的 Invalid size 报错
 define Build/mt798x-gpt
 	$(STAGING_DIR_HOST)/bin/ptgen \
 		-g -o $@.tmp \
 		-a 1 -l 1024 \
-		$(if $(findstring emmc,$1), -S 0x$(shell printf "%x" $(CONFIG_TARGET_EXT4_PARTSIZE_DEFAULT))) \
 		-t 0xef -p 64M@0x20000 \
-		-t 0x83 -p $(CONFIG_TARGET_EXT4_PARTSIZE_DEFAULT)M@0x4020000 \
-		$(if $(findstring emmc,$1), -t 0x83 -p 100M@0x$(shell printf "%x" $(shell expr 64 + $(CONFIG_TARGET_EXT4_PARTSIZE_DEFAULT) + 4))) \
+		-t 0x83 -p 512M@0x4020000 \
+		-t 0x83 -p 100M@0x24020000 \
 	&& mv $@.tmp $@
 endef
 
