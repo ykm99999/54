@@ -28,7 +28,7 @@ define Build/Prepare
 	rm -f $(PKG_BUILD_DIR)/configure
 endef
 
-# 配置阶段：使用正确的 defconfig
+# 配置阶段：直接使用 defconfig
 define Build/Configure
 	$(MAKE) -C $(PKG_BUILD_DIR) mt7981_emmc_defconfig
 endef
