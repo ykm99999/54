@@ -1,14 +1,13 @@
 #
 # SPDX-License-Identifier: GPL-2.0-only
-# 物理审计：本地集成版，使用 file://src 源码，禁用补丁
+# 物理审计：本地集成版，使用 src 目录源码，禁用补丁和下载
 #
 
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
-# 使用本地源码（由补丁脚本克隆到 src 目录）
-PKG_SOURCE_URL:=file://src
-PKG_SOURCE_PROTO:=file
+# 使用本地源码（由工作流克隆到 src 目录），彻底避免下载机制
+PKG_SOURCE_DIR:=$(CURDIR)/src
 PKG_VERSION:=custom
 PKG_HASH:=skip
 
@@ -24,11 +23,16 @@ include $(INCLUDE_DIR)/u-boot.mk
 include $(INCLUDE_DIR)/package.mk
 include $(INCLUDE_DIR)/host-build.mk
 
-# ===== 添加以下行，禁用 YAML 支持，避免链接 libyaml =====
+# 强制禁用 YAML 输出，避免 libyaml 链接问题
 UBOOT_MAKE_FLAGS += NO_YAML=1
-# ========================================================
 
-# 定义 Package/U-Boot 模板（解决 TITLE 缺失错误）
+# 自定义准备阶段：将源码复制到构建目录（替换默认的下载逻辑）
+define Build/Prepare
+	mkdir -p $(PKG_BUILD_DIR)
+	cp -fpR $(PKG_SOURCE_DIR)/. $(PKG_BUILD_DIR)/
+endef
+
+# 定义 Package/U-Boot 模板
 define Package/U-Boot
   SECTION:=boot
   CATEGORY:=Boot Loaders
@@ -67,7 +71,7 @@ ifdef CONFIG_TARGET_mediatek
 UBOOT_MAKE_FLAGS += $(UBOOT_IMAGE:.fip=.bin)
 endif
 
-# 修复：FIP 合成加入 BL2（tb-fw），并检查文件存在性
+# FIP 合成：加入 BL2（tb-fw），并检查文件存在性
 define Build/fip-image
 	# 查找 BL2 和 BL31 文件（由 ATF 包提供）
 	BL2_BIN="$(STAGING_DIR_IMAGE)/mt7981-emmc-ddr3-bl2.bin" ; \
@@ -103,7 +107,7 @@ define Package/u-boot/install
 endef
 endif
 
-# 修复：BL2 从 STAGING_DIR_IMAGE 复制，而非 U-Boot 构建目录
+# 安装开发文件：BL2 和 FIP 到 staging 目录
 define Build/InstallDev
 	$(INSTALL_DIR) $(STAGING_DIR_HOST)/share/u-boot
 	# 复制 BL2（来自 ATF 包）
