@@ -6,46 +6,44 @@ PKG_VERSION:=2024.10
 PKG_RELEASE:=1
 
 PKG_SOURCE_PROTO:=git
-PKG_SOURCE_URL:=https://github.com/ykm99999/66.git
+PKG_SOURCE_URL:=https://github.com/ykm888/66.git
 PKG_SOURCE_VERSION:=sl3000-uboot-base
 PKG_MIRROR_HASH:=skip
 
 PKG_MAINTAINER:=Gemini_AI
 
 include $(INCLUDE_DIR)/package.mk
-include $(INCLUDE_DIR)/u-boot.mk
-
-define U-Boot/Default
-  BUILD_TARGET:=mediatek
-  BUILD_SUBTARGET:=mt7981
-  BUILD_DEVICES:=sl_3000-emmc
-endef
-
-define U-Boot/mt7981_sl_3000-emmc
-  NAME:=SL 3000 (eMMC)
-  BUILD_DEVICES:=sl_3000-emmc
-  UBOOT_CONFIG:=mt7981_sl_3000-emmc
-  UBOOT_IMAGE:=u-boot.fip
-  BL2_IMAGE:=bl2.bin
-endef
-
-UBOOT_TARGETS:=mt7981_sl_3000-emmc
 
 define Package/uboot-mediatek
   SECTION:=boot
   CATEGORY:=Boot Loaders
   TITLE:=U-Boot for MediaTek MT7981 (SL 3000 eMMC)
   DEPENDS:=@TARGET_mediatek_mt7981
-  URL:=https://github.com/ykm99999/66.git
+  URL:=https://github.com/ykm888/66.git
+endef
+
+# 准备阶段：执行默认操作后删除可能存在的 configure 文件
+define Build/Prepare
+	$(call Build/Prepare/Default)
+	rm -f $(PKG_BUILD_DIR)/configure
+endef
+
+# 配置阶段：使用正确的 defconfig
+define Build/Configure
+	$(MAKE) -C $(PKG_BUILD_DIR) mt7981_emmc_defconfig
+endef
+
+# 编译阶段：设置交叉编译工具链
+define Build/Compile
+	$(MAKE) -C $(PKG_BUILD_DIR) \
+		CROSS_COMPILE=$(TARGET_CROSS) \
+		all
 endef
 
 define Package/uboot-mediatek/install
-	mkdir -p $(STAGING_DIR_IMAGE)
-	# 复制生成的 BL2 和 FIP 镜像到 staging 目录
+	$(INSTALL_DIR) $(STAGING_DIR_IMAGE)
 	$(CP) $(PKG_BUILD_DIR)/bl2.bin $(STAGING_DIR_IMAGE)/mt7981-emmc-ddr3-bl2.bin 2>/dev/null || true
 	$(CP) $(PKG_BUILD_DIR)/u-boot.fip $(STAGING_DIR_IMAGE)/mt7981-emmc-ddr3-u-boot.fip 2>/dev/null || true
-	
-	# 安装到包目标目录（用于打包）
 	$(INSTALL_DIR) $(1)/usr/share/uboot-mediatek
 	$(CP) $(PKG_BUILD_DIR)/u-boot.bin $(1)/usr/share/uboot-mediatek/ 2>/dev/null || true
 	$(CP) $(PKG_BUILD_DIR)/u-boot.fip $(1)/usr/share/uboot-mediatek/ 2>/dev/null || true
