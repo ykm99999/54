@@ -1,43 +1,47 @@
 #
 # SPDX-License-Identifier: GPL-2.0-only
-# 物理审计：本地集成版，使用 src 目录源码，禁用补丁和下载
+# 终极修复：完全接管源码准备，绕过 u-boot.mk 的下载逻辑
 #
 
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
-# 使用本地源码（由工作流克隆到 src 目录），彻底避免下载机制
-PKG_SOURCE_DIR:=$(CURDIR)/src
+PKG_NAME:=uboot-mediatek
+# 清空所有与下载相关的变量，强制使用本地源码
 PKG_VERSION:=custom
+PKG_RELEASE:=1
+PKG_SOURCE:=
+PKG_SOURCE_URL:=
 PKG_HASH:=skip
+PKG_MD5SUM:=
+PKG_MAINTAINER:=Gemini_AI
 
 # 禁用补丁
 PKG_PATCH_DIR:=
 
-# 保持原有依赖定义
 PKG_BUILD_DEPENDS:=!(TARGET_ramips||TARGET_mediatek_mt7623):arm-trusted-firmware-tools/host
 
 UBOOT_USE_INTREE_DTC:=1
 
-include $(INCLUDE_DIR)/u-boot.mk
 include $(INCLUDE_DIR)/package.mk
+include $(INCLUDE_DIR)/u-boot.mk
 include $(INCLUDE_DIR)/host-build.mk
 
 # 强制禁用 YAML 输出，避免 libyaml 链接问题
 UBOOT_MAKE_FLAGS += NO_YAML=1
 
-# 自定义准备阶段：将源码复制到构建目录（替换默认的下载逻辑）
+# 核心修复：从 Makefile 所在目录下的 src/ 复制源码到构建目录
 define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
-	cp -fpR $(PKG_SOURCE_DIR)/. $(PKG_BUILD_DIR)/
+	cp -fpR $(CURDIR)/src/. $(PKG_BUILD_DIR)/
 endef
 
-# 定义 Package/U-Boot 模板
 define Package/U-Boot
   SECTION:=boot
   CATEGORY:=Boot Loaders
-  TITLE:=U-Boot for MediaTek boards
-  DEPENDS:=
+  TITLE:=U-Boot for MediaTek MT7981 (SL 3000 eMMC)
+  DEPENDS:=@TARGET_mediatek_mt7981
+  URL:=https://github.com/ykm888/66.git
 endef
 
 define U-Boot/Default
@@ -71,9 +75,7 @@ ifdef CONFIG_TARGET_mediatek
 UBOOT_MAKE_FLAGS += $(UBOOT_IMAGE:.fip=.bin)
 endif
 
-# FIP 合成：加入 BL2（tb-fw），并检查文件存在性
 define Build/fip-image
-	# 查找 BL2 和 BL31 文件（由 ATF 包提供）
 	BL2_BIN="$(STAGING_DIR_IMAGE)/mt7981-emmc-ddr3-bl2.bin" ; \
 	BL31_BIN="$(STAGING_DIR_IMAGE)/mt7981-emmc-ddr3-bl31.bin" ; \
 	if [ ! -f "$$BL2_BIN" ]; then \
@@ -91,7 +93,6 @@ endef
 
 define Build/Configure
 	$(call Build/Configure/U-Boot)
-	# 精确禁用 TOOLS_LIBCRYPTO
 	sed -i '/^CONFIG_TOOLS_LIBCRYPTO=y/s/.*/# CONFIG_TOOLS_LIBCRYPTO is not set/' $(PKG_BUILD_DIR)/.config
 endef
 
@@ -107,13 +108,10 @@ define Package/u-boot/install
 endef
 endif
 
-# 安装开发文件：BL2 和 FIP 到 staging 目录
 define Build/InstallDev
 	$(INSTALL_DIR) $(STAGING_DIR_HOST)/share/u-boot
-	# 复制 BL2（来自 ATF 包）
 	$(CP) $(STAGING_DIR_IMAGE)/mt7981-emmc-ddr3-bl2.bin \
 		$(STAGING_DIR_HOST)/share/u-boot/mt7981-emmc-ddr3-bl2.bin
-	# 复制 FIP（由本包生成）
 	$(CP) $(PKG_BUILD_DIR)/$(BUILD_VARIANT)/u-boot.fip \
 		$(STAGING_DIR_HOST)/share/u-boot/mt7981-emmc-ddr3-fip.bin
 	$(INSTALL_DIR) $(STAGING_DIR_IMAGE)
