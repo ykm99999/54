@@ -1,18 +1,24 @@
 /dts-v1/;
 #include "mt7981.dtsi"
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/mt65xx.h>
 
 / {
 	model = "SL-3000 eMMC";
 	compatible = "sl,3000-emmc", "mediatek,mt7981";
 
+	aliases {
+		ethernet0 = &eth;
+	};
+
 	chosen {
-		bootargs = "console=ttyS0,115200n8 earlycon=uart8250,mmio32,0x11002000";
+		bootargs = "console=ttyS0,115200n8 earlycon";
 		stdout-path = "serial0:115200n8";
 	};
 
 	memory@40000000 {
 		device_type = "memory";
-		reg = <0 0x40000000 0 0x40000000>; /* 物理全对齐：1024M DRAM 寄存器 */
+		reg = <0 0x40000000 0 0x40000000>; /* 锁定 1024M DRAM */
 	};
 
 	reg_1p8v: regulator-1p8v {
@@ -30,6 +36,23 @@
 		regulator-max-microvolt = <3300000>;
 		regulator-always-on;
 	};
+};
+
+/* 物理修复：注入以太网节点，解决 eth0 报错 */
+&eth {
+	status = "okay";
+	mediatek,gmac-id = <0>;
+	phy-mode = "2500base-x"; /* SL3000 通常为 2.5G SGMII/2500Base-X */
+	
+	fixed-link {
+		speed = <2500>;
+		full-duplex;
+		pause;
+	};
+};
+
+&mdio {
+	status = "okay";
 };
 
 &mmc0 {
@@ -91,5 +114,14 @@
 };
 
 &watchdog {
+	status = "okay";
+};
+
+/* 补全 USB 支持，否则 SL3000 的 USB 接口将失效 */
+&usb_phy {
+	status = "okay";
+};
+
+&xhci0 {
 	status = "okay";
 };
